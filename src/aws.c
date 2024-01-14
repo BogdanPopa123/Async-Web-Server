@@ -67,12 +67,12 @@ static enum resource_type connection_get_resource_type(struct connection *conn)
 	 * point to the static or dynamic folder.
 	 */
 	if (strstr(conn->request_path, "static")) {
-		strcpy(conn->filename, AWS_ABS_STATIC_FOLDER);
+		sprintf(conn->filename, AWS_ABS_STATIC_FOLDER);
 		conn->res_type = RESOURCE_TYPE_STATIC;
 		return RESOURCE_TYPE_STATIC;
 	}
 	if (strstr(conn->request_path, "dynamic")) {
-		strcpy(conn->filename, AWS_ABS_DYNAMIC_FOLDER);
+		sprintf(conn->filename, AWS_ABS_DYNAMIC_FOLDER);
 		conn->res_type = RESOURCE_TYPE_DYNAMIC;
 		return RESOURCE_TYPE_DYNAMIC;
 	}
@@ -321,6 +321,9 @@ int connection_send_dynamic(struct connection *conn)
 	struct io_event events[1];
 	int num_events = io_getevents(ctx, 1, 1, events, NULL);
 
+	if (num_events < 0)
+		return -1;
+
 	off_t offset = 0;
 	ssize_t remaining = events[0].res;
 
@@ -368,9 +371,9 @@ void handle_input(struct connection *conn)
 
 		newPath[0] = '.';
 		if (!(conn->request_path[0] == '.' && conn->request_path[1] != '.'))
-			strcpy(newPath + 1, conn->request_path);
+			sprintf(newPath + 1, "%s", conn->request_path);
 
-		strcpy(conn->request_path, newPath);
+		sprintf(conn->request_path, "%s", newPath);
 		if (access(newPath, F_OK) != -1) {
 			conn->have_path = 1;
 			free(newPath);
