@@ -153,10 +153,11 @@ void receive_data(struct connection *conn)
 	 */
 
 	int bytes_received = 0;
+
 	conn->recv_len = 0;
 
 
-	while (1){
+	while (1) {
 		bytes_received = recv(conn->sockfd, conn->recv_buffer + conn->recv_len, BUFSIZ, 0);
 
 		if (bytes_received < 0)
@@ -212,13 +213,13 @@ void connection_complete_async_io(struct connection *conn)
 
 	int num_events = io_getevents(ctx, 1, 1, events, NULL);
 
-	if (num_events < 0) {
+	if (num_events < 0)
 		return;
-	}
 
-	if (events[0].res < 0) {
+
+	if (events[0].res < 0)
 		return;
-	}
+
 }
 
 int parse_header(struct connection *conn)
@@ -247,9 +248,9 @@ enum connection_state connection_send_static(struct connection *conn)
 	/* TODO: Send static data using sendfile(2). */
 	int file_descriptor = connection_open_file(conn);
 
-	if (file_descriptor < 0) {
+	if (file_descriptor < 0)
 		return STATE_CONNECTION_CLOSED;
-	}
+
 
 	off_t offset = 0;
 	ssize_t remaining = conn->file_size;
@@ -292,23 +293,23 @@ int connection_send_data(struct connection *conn)
 		conn->state = STATE_404_SENT;
 
 		return sent_header_size;
-	} else {
-
-		connection_prepare_send_reply_header(conn);
-
-		ssize_t sent_header_size = send(conn->sockfd, conn->send_buffer, strlen(conn->send_buffer), 0);
-
-		if (sent_header_size < 0)
-			return -1;
-
-
-		if (conn->res_type == RESOURCE_TYPE_STATIC) {
-			connection_send_static(conn);
-			conn->state = STATE_CONNECTION_CLOSED;
-		} else if (conn->res_type == RESOURCE_TYPE_DYNAMIC) {
-			connection_send_dynamic(conn);
-		}
 	}
+
+	connection_prepare_send_reply_header(conn);
+
+	ssize_t sent_header_size = send(conn->sockfd, conn->send_buffer, strlen(conn->send_buffer), 0);
+
+	if (sent_header_size < 0)
+		return -1;
+
+
+	if (conn->res_type == RESOURCE_TYPE_STATIC) {
+		connection_send_static(conn);
+		conn->state = STATE_CONNECTION_CLOSED;
+	} else if (conn->res_type == RESOURCE_TYPE_DYNAMIC) {
+		connection_send_dynamic(conn);
+	}
+
 	return -1;
 }
 
@@ -330,9 +331,9 @@ int connection_send_dynamic(struct connection *conn)
 	while (remaining > 0) {
 		ssize_t sent = send(conn->sockfd, conn->recv_buffer + offset, remaining, 0);
 
-		if (sent < 0) {
+		if (sent < 0)
 			return -1;
-		}
+
 
 		remaining -= sent;
 		offset += sent;
