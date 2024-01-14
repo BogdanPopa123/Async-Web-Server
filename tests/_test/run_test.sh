@@ -11,7 +11,7 @@ LOG_FILE=test.log
 WGET_LOG=wget.log
 
 # Enable/disable cleanup (yes/no)
-DO_CLEANUP=yes
+DO_CLEANUP=no
 
 max_points=90
 
@@ -400,11 +400,14 @@ test_unordered_connect_disconnect_connect()
 
 test_replies_http_request()
 {
+    #init_world
     init_test
 
+    #set -x
     echo -ne "GET /$(basename $static_folder)/small00.dat HTTP/1.0\r\n\r\n" | \
         nc -q 1 localhost "$aws_listen_port" > small00.dat 2> /dev/null
-
+    #echo "sleep..."
+    #sleep 200 
     head -1 small00.dat | grep '^HTTP/' > /dev/null 2>&1
     basic_test test $? -eq 0
 
@@ -443,9 +446,12 @@ test_get_small_file_wget()
     wget -t 1 "http://localhost:8888/$(basename $static_folder)/small00.dat" \
         -o "$WGET_LOG" -O small00.dat
     code1=$?
-
+    #echo "code 1 is $code1"
+    #cat $WGET_LOG
     [ -s small00.dat ]
     code2=$?
+    #echo "code 2 is $code2"
+    #ls -lh small00.dat
     basic_test test "$code1" -eq 0 -a "$code2" -eq 0
 
     rm small00.dat
