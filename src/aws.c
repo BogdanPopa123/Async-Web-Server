@@ -51,8 +51,9 @@ static int aws_on_path_cb(http_parser *p, const char *buf, size_t len)
 static void connection_prepare_send_reply_header(struct connection *conn)
 {
 	/* TODO: Prepare the connection buffer to send the reply header. */
-	sprintf(conn->send_buffer, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/plain\r\n\r\n", (int) conn->file_size);
-	
+	sprintf(conn->send_buffer,
+	"HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/plain\r\n\r\n", (int) conn->file_size);
+
 }
 
 static void connection_prepare_send_404(struct connection *conn)
@@ -98,7 +99,7 @@ void connection_start_async_io(struct connection *conn)
 	/* TODO: Start asynchronous operation (read from file).
 	 * Use io_submit(2) & friends for reading data asynchronously.
 	 */
-	
+
 	memset(&conn->iocb, 0, sizeof(struct iocb));
 
 	io_prep_pread(&conn->iocb, conn->fd, conn->recv_buffer, conn->recv_len, 0);
@@ -130,13 +131,13 @@ void handle_new_connection(void)
 
 	/* TODO: Accept new connection. */
 	sockfd = accept(listenfd, (SSA *) &addr, &addrlen);
-	
+
 	/* TODO: Set socket to be non-blocking. */
 	fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK);
 
 	/* TODO: Instantiate new connection handler. */
 	conn = connection_create(sockfd);
-	
+
 	/* TODO: Add socket to epoll. */
 	w_epoll_add_ptr_in(epollfd, sockfd, conn);
 
@@ -150,20 +151,19 @@ void receive_data(struct connection *conn)
 	/* TODO: Receive message on socket.
 	 * Store message in recv_buffer in struct connection.
 	 */
-	
+
 	int bytes_received = 0;
 	conn->recv_len = 0;
 
 
 	while (1){
-
 		bytes_received = recv(conn->sockfd, conn->recv_buffer + conn->recv_len, BUFSIZ, 0);
 
 		if (bytes_received < 0) {
 			
 			return;
 		} else if (bytes_received == 0) {
-			
+
 			return;
 		}
 		conn->recv_len += (size_t) bytes_received;
@@ -220,7 +220,6 @@ void connection_complete_async_io(struct connection *conn)
     if (events[0].res < 0) {
 		return;
 	}
-
 }
 
 int parse_header(struct connection *conn)
@@ -249,7 +248,7 @@ enum connection_state connection_send_static(struct connection *conn)
 	/* TODO: Send static data using sendfile(2). */
 	int file_descriptor = connection_open_file(conn);
 
-	if (file_descriptor < 0 ) {
+	if (file_descriptor < 0) {
 		printf("Error inside connection_send_static with file descriptor when opening file\n");
 		return STATE_CONNECTION_CLOSED;
 	}
@@ -261,7 +260,6 @@ enum connection_state connection_send_static(struct connection *conn)
 		ssize_t sent = sendfile(conn->sockfd, file_descriptor, &offset, remaining);
 
 		if (sent < 0) {
-			dlog (LOG_ERR, "Error sending static\n");
 			close(file_descriptor);
 			return STATE_CONNECTION_CLOSED;
 		}
@@ -269,7 +267,7 @@ enum connection_state connection_send_static(struct connection *conn)
 		remaining = remaining - sent;
 	}
 
-	close (file_descriptor);
+	close(file_descriptor);
 
 
 	return STATE_CONNECTION_CLOSED;
@@ -284,13 +282,11 @@ int connection_send_data(struct connection *conn)
 	 * Returns the number of bytes sent or -1 if an error occurred
 	 */
 	if (conn->have_path == 0) {
-		printf ("must send 404 inside conn_send_data\n");
 		connection_prepare_send_404(conn);
 
 		ssize_t sent_header_size = send(conn->sockfd, conn->send_buffer, strlen(conn->send_buffer), 0);
 
 		if (sent_header_size < 0) {
-			printf ("Error when sending the header 404 in conn_send_data\n");
 			w_epoll_remove_fd(epollfd, conn->sockfd);
 			close(conn->sockfd);
 			return -1;
@@ -299,7 +295,7 @@ int connection_send_data(struct connection *conn)
 
 		return sent_header_size;
 	} else {
-		
+
 		connection_prepare_send_reply_header(conn);
 
 		ssize_t sent_header_size = send(conn->sockfd, conn->send_buffer, strlen(conn->send_buffer), 0);
@@ -314,7 +310,6 @@ int connection_send_data(struct connection *conn)
 		} else if (conn->res_type == RESOURCE_TYPE_DYNAMIC) {
 			connection_send_dynamic(conn);
 		}
-
 	}
 	return -1;
 }
@@ -361,7 +356,7 @@ void handle_input(struct connection *conn)
 	case STATE_RECEIVING_DATA:
 		receive_data(conn);
 		parse_header(conn);
-		
+
 		conn->state = STATE_REQUEST_RECEIVED;
 
 		struct epoll_event ev;
@@ -372,7 +367,7 @@ void handle_input(struct connection *conn)
 		enum resource_type resource_type_conn =  connection_get_resource_type(conn);
 		conn->res_type = resource_type_conn;
 
-		char *newPath = (char *)malloc( strlen(conn->request_path) + 1);
+		char *newPath = (char *)malloc(strlen(conn->request_path) + 1);
 		newPath[0] = '.';
 		if (!(conn->request_path[0] == '.' && conn->request_path[1] != '.')){
 			strcpy(newPath + 1, conn->request_path);
@@ -405,7 +400,6 @@ void handle_output(struct connection *conn)
 		ERR("Unexpected state\n");
 		exit(1);
 	}
-
 }
 
 void handle_client(uint32_t event, struct connection *conn)
@@ -417,12 +411,12 @@ void handle_client(uint32_t event, struct connection *conn)
 		conn->state = STATE_RECEIVING_DATA;
 		handle_input(conn);
 	}
-	
+
 	if (event & EPOLLOUT) {
 		handle_output(conn);
 		conn->state = STATE_DATA_SENT;
 	}
-	
+
 	if (conn->state == STATE_CONNECTION_CLOSED) {
 		w_epoll_remove_fd(epollfd, conn->sockfd);
 		close(conn->sockfd);
