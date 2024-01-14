@@ -106,9 +106,9 @@ void connection_start_async_io(struct connection *conn)
 
 	conn->piocb[0] = &conn->iocb;
 
-	if (io_submit(ctx, 1024, conn->piocb) < 0) {
+	if (io_submit(ctx, 1024, conn->piocb) < 0)
 		dlog(LOG_ERR, "IO SUBMIT ERROR\n");
-	}
+
 }
 
 void connection_remove(struct connection *conn)
@@ -159,19 +159,17 @@ void receive_data(struct connection *conn)
 	while (1){
 		bytes_received = recv(conn->sockfd, conn->recv_buffer + conn->recv_len, BUFSIZ, 0);
 
-		if (bytes_received < 0) {
-			
+		if (bytes_received < 0)
 			return;
-		} else if (bytes_received == 0) {
+		else if (bytes_received == 0)
+			return;
 
-			return;
-		}
 		conn->recv_len += (size_t) bytes_received;
 		conn->recv_buffer[(int) conn->recv_len] = '\0';
 
-		if (strstr(conn->recv_buffer, "\r\n\r\n")) {
+		if (strstr(conn->recv_buffer, "\r\n\r\n"))
 			break;
-		}
+
 	}
 
 	conn->recv_buffer[conn->recv_len] = '\0';
@@ -189,6 +187,7 @@ int connection_open_file(struct connection *conn)
 	}
 
 	struct stat st;
+
 	if (fstat(fd, &st) < 0) {
 		printf("Error at openfile for file stats\n");
 		return -1;
@@ -217,7 +216,7 @@ void connection_complete_async_io(struct connection *conn)
 		return;
 	}
 
-    if (events[0].res < 0) {
+	if (events[0].res < 0) {
 		return;
 	}
 }
@@ -249,7 +248,6 @@ enum connection_state connection_send_static(struct connection *conn)
 	int file_descriptor = connection_open_file(conn);
 
 	if (file_descriptor < 0) {
-		printf("Error inside connection_send_static with file descriptor when opening file\n");
 		return STATE_CONNECTION_CLOSED;
 	}
 
@@ -300,9 +298,9 @@ int connection_send_data(struct connection *conn)
 
 		ssize_t sent_header_size = send(conn->sockfd, conn->send_buffer, strlen(conn->send_buffer), 0);
 
-		if (sent_header_size < 0) {
+		if (sent_header_size < 0)
 			return -1;
-		}
+
 
 		if (conn->res_type == RESOURCE_TYPE_STATIC) {
 			connection_send_static(conn);
@@ -324,21 +322,21 @@ int connection_send_dynamic(struct connection *conn)
 	connection_start_async_io(conn);
 
 	struct io_event events[1];
-    int num_events = io_getevents(ctx, 1, 1, events, NULL);
+	int num_events = io_getevents(ctx, 1, 1, events, NULL);
 
 	off_t offset = 0;
-    ssize_t remaining = events[0].res;
+	ssize_t remaining = events[0].res;
 
-    while (remaining > 0) {
-        ssize_t sent = send(conn->sockfd, conn->recv_buffer + offset, remaining, 0);
+	while (remaining > 0) {
+		ssize_t sent = send(conn->sockfd, conn->recv_buffer + offset, remaining, 0);
 
-        if (sent < 0) {
-            return -1;
-        }
+		if (sent < 0) {
+			return -1;
+		}
 
-        remaining -= sent;
-        offset += sent;
-    }
+		remaining -= sent;
+		offset += sent;
+	}
 
 	connection_complete_async_io(conn);
 
@@ -360,18 +358,21 @@ void handle_input(struct connection *conn)
 		conn->state = STATE_REQUEST_RECEIVED;
 
 		struct epoll_event ev;
+
 		ev.events = EPOLLOUT;
 		ev.data.ptr = conn;
 		epoll_ctl(epollfd, EPOLL_CTL_MOD, conn->sockfd, &ev);
 
 		enum resource_type resource_type_conn =  connection_get_resource_type(conn);
+
 		conn->res_type = resource_type_conn;
 
 		char *newPath = (char *)malloc(strlen(conn->request_path) + 1);
+
 		newPath[0] = '.';
-		if (!(conn->request_path[0] == '.' && conn->request_path[1] != '.')){
+		if (!(conn->request_path[0] == '.' && conn->request_path[1] != '.'))
 			strcpy(newPath + 1, conn->request_path);
-		}
+
 		strcpy(conn->request_path, newPath);
 		if (access(newPath, F_OK) != -1) {
 			conn->have_path = 1;
@@ -459,6 +460,7 @@ int main(void)
 			handle_new_connection();
 		} else if (rev.data.fd != listenfd) {
 			struct connection *conn = rev.data.ptr;
+
 			handle_client(rev.events, conn);
 		}
 	}
