@@ -53,7 +53,6 @@ static void connection_prepare_send_reply_header(struct connection *conn)
 	/* TODO: Prepare the connection buffer to send the reply header. */
 	sprintf(conn->send_buffer,
 	"HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/plain\r\n\r\n", (int) conn->file_size);
-
 }
 
 static void connection_prepare_send_404(struct connection *conn)
@@ -108,7 +107,6 @@ void connection_start_async_io(struct connection *conn)
 
 	if (io_submit(ctx, 1024, conn->piocb) < 0)
 		dlog(LOG_ERR, "IO SUBMIT ERROR\n");
-
 }
 
 void connection_remove(struct connection *conn)
@@ -170,7 +168,6 @@ void receive_data(struct connection *conn)
 
 		if (strstr(conn->recv_buffer, "\r\n\r\n"))
 			break;
-
 	}
 
 	conn->recv_buffer[conn->recv_len] = '\0';
@@ -219,7 +216,6 @@ void connection_complete_async_io(struct connection *conn)
 
 	if (events[0].res < 0)
 		return;
-
 }
 
 int parse_header(struct connection *conn)
